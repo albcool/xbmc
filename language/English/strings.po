@@ -15073,6 +15073,17 @@ msgid "Limits resolution of GUI to save memory. Does not affect video playback. 
 msgstr ""
 
 #empty strings from id 36549 to 36999
+#: system/settings/settings.xml
+msgctxt "#36549"
+msgid "Pause playback during the sterescopic mode change"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36550"
+msgid "Pause for a small amount of time during a sterescopic mode change. This potentially allows don't skip frames during a sterescopic mode change."
+msgstr ""
+
+#empty strings from id 36551 to 36999
 #reserved strings 365XX
 
 #: xbmc/cores/dvdplayer/DVDInputStreams/DVDInputStreamNavigator.cpp
