@@ -1251,10 +1251,20 @@ bool CApplication::InitDirectoriesWin32()
 
   CStdString strWin32UserFolder = CWIN32Util::GetProfilePath();
 
-  g_advancedSettings.m_logFolder = strWin32UserFolder;
+  CStdString strLogsFolder = CEnvironment::getenv("XBMC_LOGS");
+  if (!strLogsFolder.empty())
+    g_advancedSettings.m_logFolder = CSpecialProtocol::TranslatePath(strLogsFolder);
+  else
+    g_advancedSettings.m_logFolder = strWin32UserFolder;
+
   CSpecialProtocol::SetHomePath(strWin32UserFolder);
   CSpecialProtocol::SetMasterProfilePath(URIUtils::AddFileToFolder(strWin32UserFolder, "userdata"));
-  CSpecialProtocol::SetTempPath(URIUtils::AddFileToFolder(strWin32UserFolder,"cache"));
+
+  CStdString strTempFolder = CEnvironment::getenv("XBMC_TEMP");
+  if (!strTempFolder.empty())
+    CSpecialProtocol::SetTempPath(CSpecialProtocol::TranslatePath(strTempFolder));
+  else
+    CSpecialProtocol::SetTempPath(URIUtils::AddFileToFolder(strWin32UserFolder,"cache"));
 
   CEnvironment::setenv("XBMC_PROFILE_USERDATA", CSpecialProtocol::TranslatePath("special://masterprofile/"));
 
