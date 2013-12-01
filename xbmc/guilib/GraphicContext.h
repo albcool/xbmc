@@ -79,6 +79,7 @@ public:
   virtual ~CGraphicContext(void);
 
   virtual void OnSettingChanged(const CSetting *setting);
+  virtual bool OnSettingChanging(const CSetting *setting);
 
   // the following two functions should wrap any
   // GL calls to maintain thread safety
@@ -229,6 +230,10 @@ public:
       m_transforms.pop();
     }
   }
+  inline void LockFakeFullScreen(bool isLock)
+  {
+    m_lockFFScreen = isLock;
+  }
 
   /* modifies final coordinates according to stereo mode if needed */
   CRect StereoCorrection(const CRect &rect) const;
@@ -247,6 +252,7 @@ protected:
   bool m_bFullScreenRoot;
   bool m_bFullScreenVideo;
   bool m_bCalibrating;
+  bool m_lockFFScreen;
   RESOLUTION m_Resolution;
 
 private:

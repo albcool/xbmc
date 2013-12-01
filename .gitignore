@@ -458,6 +458,7 @@ lib/cmyth/Makefile
 
 # /system
 /system/zlib1.dll
+/system/intel_s3d.dll
 
 
 # /screensavers/
