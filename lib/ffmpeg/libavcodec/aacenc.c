@@ -813,6 +813,11 @@ static const int mpeg4audio_sample_rates[16] = {
     24000, 22050, 16000, 12000, 11025, 8000, 7350
 };
 
+static const AVProfile profiles[] = {
+    { FF_PROFILE_AAC_LOW,  "Low"  },
+    { FF_PROFILE_UNKNOWN },
+};
+
 AVCodec ff_aac_encoder = {
     .name           = "aac",
     .long_name      = NULL_IF_CONFIG_SMALL("AAC (Advanced Audio Coding)"),
@@ -828,4 +833,5 @@ AVCodec ff_aac_encoder = {
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLTP,
                                                      AV_SAMPLE_FMT_NONE },
     .priv_class     = &aacenc_class,
+    .profiles       = profiles,
 };
