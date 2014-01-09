@@ -619,7 +619,7 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(DVDVideoPicture* pDvdVideoPicture)
   if (!m_pFrame)
     return false;
 
-  AVDictionaryEntry * entry = m_dllAvUtil.av_dict_get(m_dllAvCodec.av_frame_get_metadata(m_pFrame), "stereo_mode", NULL, 0);
+  AVDictionaryEntry * entry = m_dllAvUtil.av_dict_get(m_dllAvUtil.av_frame_get_metadata(m_pFrame), "stereo_mode", NULL, 0);
   if(entry && entry->value)
   {
     strncpy(pDvdVideoPicture->stereo_mode, (const char*)entry->value, sizeof(pDvdVideoPicture->stereo_mode));
