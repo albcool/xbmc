@@ -2042,10 +2042,12 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
         ff_read_frame_flush(s);
         ret = s->iformat->read_seek(s, stream_index, timestamp, flags);
     } else
-        ret = -1;
+        ret = AVERROR(ENOSYS);
     if (ret >= 0) {
         return 0;
     }
+    if (ret != AVERROR(ENOSYS))
+        return ret;
 
     if (s->iformat->read_timestamp && !(s->iformat->flags & AVFMT_NOBINSEARCH)) {
         ff_read_frame_flush(s);

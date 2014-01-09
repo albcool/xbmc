@@ -182,7 +182,7 @@ static int pmp_close(AVFormatContext *s)
 {
     PMPContext *pmp = s->priv_data;
     av_freep(&pmp->packet_sizes);
-    return 0;
+    return AVERROR(ENOSYS);
 }
 
 AVInputFormat ff_pmp_demuxer = {
