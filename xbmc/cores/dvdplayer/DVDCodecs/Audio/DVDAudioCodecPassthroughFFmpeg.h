@@ -28,6 +28,8 @@
 
 #include "DVDAudioCodec.h"
 
+#define MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio
+
 class CDVDAudioCodecPassthroughFFmpeg : public CDVDAudioCodec
 {
 public:
@@ -66,7 +68,7 @@ private:
     std::list<DataPacket*> m_OutputBuffer;
     unsigned int           m_OutputSize;
     bool                   m_WroteHeader;
-    unsigned char          m_BCBuffer[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+    unsigned char          m_BCBuffer[MAX_AUDIO_FRAME_SIZE];
     unsigned int           m_Consumed;
     unsigned int           m_BufferSize;
     uint8_t               *m_Buffer;
@@ -89,7 +91,7 @@ private:
   unsigned int      m_DecodeSize;
   bool SupportsFormat(CDVDStreamInfo &hints);
 
-  uint8_t      m_NeededBuffer[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+  uint8_t      m_NeededBuffer[MAX_AUDIO_FRAME_SIZE];
   unsigned int m_NeededUsed;
   unsigned int m_Needed;
   bool         m_LostSync;
