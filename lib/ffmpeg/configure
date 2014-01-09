@@ -289,6 +289,7 @@ Advanced options (experts only):
   --arch=ARCH              select architecture [$arch]
   --cpu=CPU                select the minimum required CPU (affects
                            instruction selection, may crash on older CPUs)
+  --custom-libname-with-major=NAME  custom library name with major [$SLIBNAME_WITH_MAJOR]
   --enable-pic             build position-independent code
   --enable-sram            allow use of on-chip SRAM
   --enable-thumb           compile for Thumb instruction set
@@ -1631,6 +1632,7 @@ CMDLINE_SET="
     cpu
     cross_prefix
     cxx
+    custom_libname_with_major
     dep_cc
     extra_version
     host_cc
@@ -3796,6 +3798,8 @@ fi
 # backward compatibility layer for incompatible_libav/fork_abi
 enabled incompatible_fork_abi  && enable incompatible_libav_abi
 enabled incompatible_libav_abi && enable incompatible_fork_abi
+
+test -n "$custom_libname_with_major" && SLIBNAME_WITH_MAJOR="$custom_libname_with_major"
 
 die_license_disabled() {
     enabled $1 || { enabled $2 && die "$2 is $1 and --enable-$1 is not specified."; }
