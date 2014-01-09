@@ -33,6 +33,7 @@
 extern "C" {
 #if (defined USE_EXTERNAL_FFMPEG)
   #include <libavutil/avutil.h>
+  #include <libavutil/frame.h>
   // for av_get_default_channel_layout
   #include <libavutil/audioconvert.h>
   #include <libavutil/crc.h>
@@ -49,6 +50,7 @@ extern "C" {
   #endif
 #else
   #include "libavutil/avutil.h"
+  #include "libavutil/frame.h"
   //for av_get_default_channel_layout
   #include "libavutil/audioconvert.h"
   #include "libavutil/crc.h"
@@ -114,6 +116,7 @@ public:
   virtual void av_frame_unref(AVFrame *frame)=0;
   virtual void av_frame_move_ref(AVFrame *dst, AVFrame *src)=0;
 #endif
+  virtual AVDictionary* av_frame_get_metadata(const AVFrame* frame)=0;
 };
 
 #if defined (USE_EXTERNAL_FFMPEG) || (defined TARGET_DARWIN)
@@ -170,6 +173,7 @@ public:
   virtual void av_frame_unref(AVFrame *frame) { return ::av_frame_unref(frame); }
   virtual void av_frame_move_ref(AVFrame *dst, AVFrame *src) { return ::av_frame_move_ref(dst,src); }
 #endif
+  virtual AVDictionary* av_frame_get_metadata(const AVFrame* frame) { return ::av_frame_get_metadata(frame); }
 
    // DLL faking.
    virtual bool ResolveExports() { return true; }
@@ -229,6 +233,7 @@ class DllAvUtilBase : public DllDynamic, DllAvUtilInterface
   DEFINE_METHOD1(void, av_frame_unref, (AVFrame *p1))
   DEFINE_METHOD2(void, av_frame_move_ref, (AVFrame *p1, AVFrame* p2))
 #endif
+  DEFINE_METHOD1(AVDictionary*, av_frame_get_metadata, (const AVFrame* p1))
 
   public:
   BEGIN_METHOD_RESOLVE()
@@ -271,6 +276,7 @@ class DllAvUtilBase : public DllDynamic, DllAvUtilInterface
     RESOLVE_METHOD(av_frame_unref)
     RESOLVE_METHOD(av_frame_move_ref)
 #endif
+    RESOLVE_METHOD(av_frame_get_metadata)
   END_METHOD_RESOLVE()
 };
 
