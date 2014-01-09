@@ -183,7 +183,7 @@ static char *dup_wchar_to_utf8(wchar_t *w)
 static int shall_we_drop(AVFormatContext *s)
 {
     struct dshow_ctx *ctx = s->priv_data;
-    const uint8_t dropscore[] = {62, 75, 87, 100};
+    static const uint8_t dropscore[] = {62, 75, 87, 100};
     const int ndropscores = FF_ARRAY_ELEMS(dropscore);
     unsigned int buffer_fullness = (ctx->curbufsize*100)/s->max_picture_buffer;
 
@@ -774,9 +774,9 @@ dshow_add_device(AVFormatContext *avctx,
         codec->width      = bih->biWidth;
         codec->height     = bih->biHeight;
         codec->pix_fmt    = dshow_pixfmt(bih->biCompression, bih->biBitCount);
-        if(bih->biCompression == MKTAG('H', 'D', 'Y', 'C')) {
-          av_log(avctx, AV_LOG_DEBUG, "attempt use full range for HDYC...");
-          codec->color_range = AVCOL_RANGE_MPEG; // just in case it needs this...
+        if (bih->biCompression == MKTAG('H', 'D', 'Y', 'C')) {
+            av_log(avctx, AV_LOG_DEBUG, "attempt to use full range for HDYC...\n");
+            codec->color_range = AVCOL_RANGE_MPEG; // just in case it needs this...
         }
         if (codec->pix_fmt == AV_PIX_FMT_NONE) {
             codec->codec_id = ff_codec_get_id(avformat_get_riff_video_tags(), bih->biCompression);

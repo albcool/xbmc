@@ -42,6 +42,7 @@
 #include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 #include "mathops.h"
 
 #define FLI_256_COLOR 4
@@ -133,7 +134,7 @@ static av_cold int flic_decode_init(AVCodecContext *avctx)
         case 15 : avctx->pix_fmt = AV_PIX_FMT_RGB555; break;
         case 16 : avctx->pix_fmt = AV_PIX_FMT_RGB565; break;
         case 24 : avctx->pix_fmt = AV_PIX_FMT_BGR24; /* Supposedly BGR, but havent any files to test with */
-                  av_log(avctx, AV_LOG_ERROR, "24Bpp FLC/FLX is unsupported due to no test files.\n");
+                  avpriv_request_sample(avctx, "24Bpp FLC/FLX");
                   return AVERROR_PATCHWELCOME;
         default :
                   av_log(avctx, AV_LOG_ERROR, "Unknown FLC/FLX depth of %d Bpp is unsupported.\n",depth);
@@ -141,7 +142,6 @@ static av_cold int flic_decode_init(AVCodecContext *avctx)
     }
 
     avcodec_get_frame_defaults(&s->frame);
-    s->frame.data[0] = NULL;
     s->new_palette = 0;
 
     return 0;
@@ -185,12 +185,8 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
 
     bytestream2_init(&g2, buf, buf_size);
 
-    s->frame.reference = 3;
-    s->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
-    if ((ret = avctx->reget_buffer(avctx, &s->frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
+    if ((ret = ff_reget_buffer(avctx, &s->frame)) < 0)
         return ret;
-    }
 
     pixels = s->frame.data[0];
     pixel_limit = s->avctx->height * s->frame.linesize[0];
@@ -206,7 +202,8 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
     frame_size -= 16;
 
     /* iterate through the chunks */
-    while ((frame_size >= 6) && (num_chunks > 0)) {
+    while ((frame_size >= 6) && (num_chunks > 0) &&
+            bytestream2_get_bytes_left(&g2) >= 4) {
         int stream_ptr_after_chunk;
         chunk_size = bytestream2_get_le32(&g2);
         if (chunk_size > frame_size) {
@@ -466,8 +463,10 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
         s->new_palette = 0;
     }
 
+    if ((ret = av_frame_ref(data, &s->frame)) < 0)
+        return ret;
+
     *got_frame = 1;
-    *(AVFrame*)data = s->frame;
 
     return buf_size;
 }
@@ -505,12 +504,8 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
 
     bytestream2_init(&g2, buf, buf_size);
 
-    s->frame.reference = 3;
-    s->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
-    if ((ret = avctx->reget_buffer(avctx, &s->frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
+    if ((ret = ff_reget_buffer(avctx, &s->frame)) < 0)
         return ret;
-    }
 
     pixels = s->frame.data[0];
     pixel_limit = s->avctx->height * s->frame.linesize[0];
@@ -525,7 +520,8 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
     frame_size -= 16;
 
     /* iterate through the chunks */
-    while ((frame_size > 0) && (num_chunks > 0)) {
+    while ((frame_size > 0) && (num_chunks > 0) &&
+            bytestream2_get_bytes_left(&g2) >= 4) {
         int stream_ptr_after_chunk;
         chunk_size = bytestream2_get_le32(&g2);
         if (chunk_size > frame_size) {
@@ -599,7 +595,7 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
             break;
 
         case FLI_LC:
-            av_log(avctx, AV_LOG_ERROR, "Unexpected FLI_LC chunk in non-paletised FLC\n");
+            av_log(avctx, AV_LOG_ERROR, "Unexpected FLI_LC chunk in non-palettized FLC\n");
             bytestream2_skip(&g2, chunk_size - 6);
             break;
 
@@ -752,9 +748,10 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
         av_log(avctx, AV_LOG_ERROR, "Processed FLI chunk where chunk size = %d " \
                "and final chunk ptr = %d\n", buf_size, bytestream2_tell(&g2));
 
+    if ((ret = av_frame_ref(data, &s->frame)) < 0)
+        return ret;
 
     *got_frame = 1;
-    *(AVFrame*)data = s->frame;
 
     return buf_size;
 }
@@ -800,14 +797,14 @@ static av_cold int flic_decode_end(AVCodecContext *avctx)
 {
     FlicDecodeContext *s = avctx->priv_data;
 
-    if (s->frame.data[0])
-        avctx->release_buffer(avctx, &s->frame);
+    av_frame_unref(&s->frame);
 
     return 0;
 }
 
 AVCodec ff_flic_decoder = {
     .name           = "flic",
+    .long_name      = NULL_IF_CONFIG_SMALL("Autodesk Animator Flic video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_FLIC,
     .priv_data_size = sizeof(FlicDecodeContext),
@@ -815,5 +812,4 @@ AVCodec ff_flic_decoder = {
     .close          = flic_decode_end,
     .decode         = flic_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Autodesk Animator Flic video"),
 };

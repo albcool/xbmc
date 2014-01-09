@@ -168,9 +168,8 @@ static int rpl_read_header(AVFormatContext *s)
             vst->codec->codec_id = AV_CODEC_ID_ESCAPE130;
             break;
         default:
-            av_log(s, AV_LOG_WARNING,
-                   "RPL video format %i not supported yet!\n",
-                   vst->codec->codec_tag);
+            avpriv_report_missing_feature(s, "Video format %i",
+                                          vst->codec->codec_tag);
             vst->codec->codec_id = AV_CODEC_ID_NONE;
     }
 
@@ -220,11 +219,8 @@ static int rpl_read_header(AVFormatContext *s)
                 }
                 break;
         }
-        if (ast->codec->codec_id == AV_CODEC_ID_NONE) {
-            av_log(s, AV_LOG_WARNING,
-                   "RPL audio format %i not supported yet!\n",
-                   audio_format);
-        }
+        if (ast->codec->codec_id == AV_CODEC_ID_NONE)
+            avpriv_request_sample(s, "Audio format %i", audio_format);
         avpriv_set_pts_info(ast, 32, 1, ast->codec->bit_rate);
     } else {
         for (i = 0; i < 3; i++)
@@ -255,7 +251,7 @@ static int rpl_read_header(AVFormatContext *s)
     for (i = 0; !error && i < number_of_chunks; i++) {
         int64_t offset, video_size, audio_size;
         error |= read_line(pb, line, sizeof(line));
-        if (3 != sscanf(line, "%"PRId64" , %"PRId64" ; %"PRId64,
+        if (3 != sscanf(line, "%"SCNd64" , %"SCNd64" ; %"SCNd64,
                         &offset, &video_size, &audio_size))
             error = -1;
         av_add_index_entry(vst, offset, i * rpl->frames_per_chunk,

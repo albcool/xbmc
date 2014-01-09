@@ -49,9 +49,6 @@
 
 #undef printf
 
-void ff_mmx_idct(int16_t *data);
-void ff_mmxext_idct(int16_t *data);
-
 // BFIN
 void ff_bfin_idct(int16_t *block);
 void ff_bfin_fdct(int16_t *block);
@@ -87,7 +84,11 @@ static const struct algo fdct_tab[] = {
 
 #if HAVE_MMX_INLINE
     { "MMX",            ff_fdct_mmx,           NO_PERM,   AV_CPU_FLAG_MMX     },
+#endif
+#if HAVE_MMXEXT_INLINE
     { "MMXEXT",         ff_fdct_mmxext,        NO_PERM,   AV_CPU_FLAG_MMXEXT  },
+#endif
+#if HAVE_SSE2_INLINE
     { "SSE2",           ff_fdct_sse2,          NO_PERM,   AV_CPU_FLAG_SSE2    },
 #endif
 
@@ -126,13 +127,13 @@ static const struct algo idct_tab[] = {
     { "SIMPLE-C",       ff_simple_idct_8,      NO_PERM  },
 
 #if HAVE_MMX_INLINE
-#if CONFIG_GPL
-    { "LIBMPEG2-MMX",   ff_mmx_idct,           MMX_PERM,  AV_CPU_FLAG_MMX,  1 },
-    { "LIBMPEG2-MMX2",  ff_mmxext_idct,        MMX_PERM,  AV_CPU_FLAG_MMX2, 1 },
-#endif
     { "SIMPLE-MMX",     ff_simple_idct_mmx,  MMX_SIMPLE_PERM, AV_CPU_FLAG_MMX },
     { "XVID-MMX",       ff_idct_xvid_mmx,      NO_PERM,   AV_CPU_FLAG_MMX,  1 },
+#endif
+#if HAVE_MMXEXT_INLINE
     { "XVID-MMXEXT",    ff_idct_xvid_mmxext,   NO_PERM,   AV_CPU_FLAG_MMXEXT, 1 },
+#endif
+#if HAVE_SSE2_INLINE
     { "XVID-SSE2",      ff_idct_xvid_sse2,     SSE2_PERM, AV_CPU_FLAG_SSE2, 1 },
 #if ARCH_X86_64 && HAVE_YASM
     { "PR-SSE2",        ff_prores_idct_put_10_sse2_wrap,     TRANSPOSE_PERM, AV_CPU_FLAG_SSE2, 1 },
@@ -579,5 +580,8 @@ int main(int argc, char **argv)
             }
     }
 
-    return err;
+    if (err)
+        printf("Error: %d.\n", err);
+
+    return !!err;
 }

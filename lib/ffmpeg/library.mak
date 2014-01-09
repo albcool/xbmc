@@ -1,5 +1,3 @@
-SRC_DIR := $(SRC_PATH)/lib$(NAME)
-
 include $(SRC_PATH)/common.mak
 
 LIBVERSION := $(lib$(NAME)_VERSION)
@@ -27,6 +25,7 @@ $(SUBDIR)%-test.i: $(SUBDIR)%.c
 $(SUBDIR)x86/%.o: $(SUBDIR)x86/%.asm
 	$(DEPYASM) $(YASMFLAGS) -I $(<D)/ -M -o $@ $< > $(@:.o=.d)
 	$(YASM) $(YASMFLAGS) -I $(<D)/ -o $@ $<
+	-$(STRIP) -wN '..@*' $@
 
 LIBOBJS := $(OBJS) $(SUBDIR)%.h.o $(TESTOBJS)
 $(LIBOBJS) $(LIBOBJS:.o=.s) $(LIBOBJS:.o=.i):   CPPFLAGS += -DHAVE_AV_CONFIG_H

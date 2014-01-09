@@ -22,6 +22,7 @@
 #include "avcodec.h"
 #include "get_bits.h"
 #include "dsputil.h"
+#include "internal.h"
 
 #define MAX_HUFF_CODES 16
 
@@ -67,6 +68,12 @@ static av_cold int mp_decode_init(AVCodecContext *avctx)
     mp->offset_bits_len = av_log2(avctx->width * avctx->height) + 1;
     mp->vpt = av_mallocz(avctx->height * sizeof(YuvPixel));
     mp->hpt = av_mallocz(h4 * w4 / 16 * sizeof(YuvPixel));
+    if (!mp->changes_map || !mp->vpt || !mp->hpt) {
+        av_freep(&mp->changes_map);
+        av_freep(&mp->vpt);
+        av_freep(&mp->hpt);
+        return AVERROR(ENOMEM);
+    }
     avctx->pix_fmt = AV_PIX_FMT_RGB555;
     avcodec_get_frame_defaults(&mp->frame);
     return 0;
@@ -264,12 +271,8 @@ static int mp_decode_frame(AVCodecContext *avctx,
     GetBitContext gb;
     int i, count1, count2, sz, ret;
 
-    mp->frame.reference = 3;
-    mp->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
-    if ((ret = avctx->reget_buffer(avctx, &mp->frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
+    if ((ret = ff_reget_buffer(avctx, &mp->frame)) < 0)
         return ret;
-    }
 
     /* le32 bitstream msb first */
     av_fast_malloc(&mp->bswapbuf, &mp->bswapbuf_size, buf_size + FF_INPUT_BUFFER_PADDING_SIZE);
@@ -314,8 +317,9 @@ static int mp_decode_frame(AVCodecContext *avctx,
     ff_free_vlc(&mp->vlc);
 
 end:
+    if ((ret = av_frame_ref(data, &mp->frame)) < 0)
+        return ret;
     *got_frame       = 1;
-    *(AVFrame *)data = mp->frame;
     return buf_size;
 }
 
@@ -327,14 +331,14 @@ static av_cold int mp_decode_end(AVCodecContext *avctx)
     av_freep(&mp->vpt);
     av_freep(&mp->hpt);
     av_freep(&mp->bswapbuf);
-    if (mp->frame.data[0])
-        avctx->release_buffer(avctx, &mp->frame);
+    av_frame_unref(&mp->frame);
 
     return 0;
 }
 
 AVCodec ff_motionpixels_decoder = {
     .name           = "motionpixels",
+    .long_name      = NULL_IF_CONFIG_SMALL("Motion Pixels video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MOTIONPIXELS,
     .priv_data_size = sizeof(MotionPixelsContext),
@@ -342,5 +346,4 @@ AVCodec ff_motionpixels_decoder = {
     .close          = mp_decode_end,
     .decode         = mp_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Motion Pixels video"),
 };

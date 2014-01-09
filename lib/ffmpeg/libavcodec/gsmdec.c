@@ -34,6 +34,14 @@
 
 static av_cold int gsm_init(AVCodecContext *avctx)
 {
+    if (avctx->codec_tag == 0x0032 &&
+        avctx->bit_rate != 13000 &&
+        avctx->bit_rate != 17912 &&
+        avctx->bit_rate != 35824 &&
+        avctx->bit_rate != 71656) {
+        av_log(avctx, AV_LOG_ERROR, "Unsupported audio mode\n");
+        return AVERROR_PATCHWELCOME;
+    }
     avctx->channels       = 1;
     avctx->channel_layout = AV_CH_LAYOUT_MONO;
     if (!avctx->sample_rate)
@@ -70,10 +78,8 @@ static int gsm_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     frame->nb_samples = avctx->frame_size;
-    if ((res = ff_get_buffer(avctx, frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+    if ((res = ff_get_buffer(avctx, frame, 0)) < 0)
         return res;
-    }
     samples = (int16_t *)frame->data[0];
 
     switch (avctx->codec_id) {
@@ -105,6 +111,7 @@ static void gsm_flush(AVCodecContext *avctx)
 #if CONFIG_GSM_DECODER
 AVCodec ff_gsm_decoder = {
     .name           = "gsm",
+    .long_name      = NULL_IF_CONFIG_SMALL("GSM"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_GSM,
     .priv_data_size = sizeof(GSMContext),
@@ -112,12 +119,12 @@ AVCodec ff_gsm_decoder = {
     .decode         = gsm_decode_frame,
     .flush          = gsm_flush,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("GSM"),
 };
 #endif
 #if CONFIG_GSM_MS_DECODER
 AVCodec ff_gsm_ms_decoder = {
     .name           = "gsm_ms",
+    .long_name      = NULL_IF_CONFIG_SMALL("GSM Microsoft variant"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_GSM_MS,
     .priv_data_size = sizeof(GSMContext),
@@ -125,6 +132,5 @@ AVCodec ff_gsm_ms_decoder = {
     .decode         = gsm_decode_frame,
     .flush          = gsm_flush,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("GSM Microsoft variant"),
 };
 #endif

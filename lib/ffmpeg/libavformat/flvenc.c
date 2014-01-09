@@ -37,7 +37,6 @@ static const AVCodecTag flv_video_codec_ids[] = {
     { AV_CODEC_ID_FLASHSV,  FLV_CODECID_SCREEN },
     { AV_CODEC_ID_FLASHSV2, FLV_CODECID_SCREEN2 },
     { AV_CODEC_ID_VP6F,     FLV_CODECID_VP6 },
-    { AV_CODEC_ID_VP6,      FLV_CODECID_VP6 },
     { AV_CODEC_ID_VP6A,     FLV_CODECID_VP6A },
     { AV_CODEC_ID_H264,     FLV_CODECID_H264 },
     { AV_CODEC_ID_NONE,     0 }
@@ -212,6 +211,11 @@ static int flv_write_header(AVFormatContext *s)
             } else {
                 framerate = 1 / av_q2d(s->streams[i]->codec->time_base);
             }
+            if (video_enc) {
+                av_log(s, AV_LOG_ERROR,
+                       "at most one video stream is supported in flv\n");
+                return AVERROR(EINVAL);
+            }
             video_enc = enc;
             if (enc->codec_tag == 0) {
                 av_log(s, AV_LOG_ERROR, "Video codec '%s' for stream %d is not compatible with FLV\n",
@@ -220,6 +224,11 @@ static int flv_write_header(AVFormatContext *s)
             }
             break;
         case AVMEDIA_TYPE_AUDIO:
+            if (audio_enc) {
+                av_log(s, AV_LOG_ERROR,
+                       "at most one audio stream is supported in flv\n");
+                return AVERROR(EINVAL);
+            }
             audio_enc = enc;
             if (get_audio_flags(s, enc) < 0)
                 return AVERROR_INVALIDDATA;
@@ -450,8 +459,8 @@ static int flv_write_packet(AVFormatContext *s, AVPacket *pkt)
     uint8_t *data = NULL;
     int flags = -1, flags_size, ret;
 
-    if (enc->codec_id == AV_CODEC_ID_VP6 || enc->codec_id == AV_CODEC_ID_VP6F ||
-        enc->codec_id == AV_CODEC_ID_VP6A || enc->codec_id == AV_CODEC_ID_AAC)
+    if (enc->codec_id == AV_CODEC_ID_VP6F || enc->codec_id == AV_CODEC_ID_VP6A ||
+        enc->codec_id == AV_CODEC_ID_AAC)
         flags_size = 2;
     else if (enc->codec_id == AV_CODEC_ID_H264 || enc->codec_id == AV_CODEC_ID_MPEG4)
         flags_size = 5;
@@ -493,10 +502,13 @@ static int flv_write_packet(AVFormatContext *s, AVPacket *pkt)
                 return ret;
     } else if (enc->codec_id == AV_CODEC_ID_AAC && pkt->size > 2 &&
                (AV_RB16(pkt->data) & 0xfff0) == 0xfff0) {
+        if (!s->streams[pkt->stream_index]->nb_frames) {
         av_log(s, AV_LOG_ERROR, "Malformed AAC bitstream detected: "
                "use audio bitstream filter 'aac_adtstoasc' to fix it "
                "('-bsf:a aac_adtstoasc' option with ffmpeg)\n");
         return AVERROR_INVALIDDATA;
+        }
+        av_log(s, AV_LOG_WARNING, "aac bitstream error\n");
     }
 
     if (flv->delay == AV_NOPTS_VALUE)
@@ -548,15 +560,17 @@ static int flv_write_packet(AVFormatContext *s, AVPacket *pkt)
     } else {
         av_assert1(flags>=0);
         avio_w8(pb,flags);
-        if (enc->codec_id == AV_CODEC_ID_VP6)
-            avio_w8(pb,0);
-        if (enc->codec_id == AV_CODEC_ID_VP6F || enc->codec_id == AV_CODEC_ID_VP6A)
-            avio_w8(pb, enc->extradata_size ? enc->extradata[0] : 0);
-        else if (enc->codec_id == AV_CODEC_ID_AAC)
-            avio_w8(pb,1); // AAC raw
+        if (enc->codec_id == AV_CODEC_ID_VP6F || enc->codec_id == AV_CODEC_ID_VP6A) {
+            if (enc->extradata_size)
+                avio_w8(pb, enc->extradata[0]);
+            else
+                avio_w8(pb, ((FFALIGN(enc->width,  16) - enc->width) << 4) |
+                             (FFALIGN(enc->height, 16) - enc->height));
+        } else if (enc->codec_id == AV_CODEC_ID_AAC)
+            avio_w8(pb, 1); // AAC raw
         else if (enc->codec_id == AV_CODEC_ID_H264 || enc->codec_id == AV_CODEC_ID_MPEG4) {
-            avio_w8(pb,1); // AVC NALU
-            avio_wb24(pb,pkt->pts - pkt->dts);
+            avio_w8(pb, 1); // AVC NALU
+            avio_wb24(pb, pkt->pts - pkt->dts);
         }
 
         avio_write(pb, data ? data : pkt->data, size);
@@ -566,7 +580,6 @@ static int flv_write_packet(AVFormatContext *s, AVPacket *pkt)
                               pkt->pts + flv->delay + pkt->duration);
     }
 
-    avio_flush(pb);
     av_free(data);
 
     return pb->error;

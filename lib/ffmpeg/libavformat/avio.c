@@ -143,6 +143,10 @@ static int url_alloc_for_protocol (URLContext **puc, struct URLProtocol *up,
     uc->max_packet_size = 0; /* default: stream file */
     if (up->priv_data_size) {
         uc->priv_data = av_mallocz(up->priv_data_size);
+        if (!uc->priv_data) {
+            err = AVERROR(ENOMEM);
+            goto fail;
+        }
         if (up->priv_data_class) {
             int proto_len= strlen(up->name);
             char *start = strchr(uc->filename, ',');
@@ -180,6 +184,9 @@ static int url_alloc_for_protocol (URLContext **puc, struct URLProtocol *up,
     return 0;
  fail:
     *puc = NULL;
+    if (uc)
+        av_freep(&uc->priv_data);
+    av_freep(&uc);
 #if CONFIG_NETWORK
     if (up->flags & URL_PROTOCOL_FLAG_NETWORK)
         ff_network_close();
@@ -241,6 +248,8 @@ int ffurl_alloc(URLContext **puc, const char *filename, int flags,
             return url_alloc_for_protocol (puc, up, filename, flags, int_cb);
     }
     *puc = NULL;
+    if (!strcmp("https", proto_str))
+        av_log(NULL, AV_LOG_WARNING, "https protocol not found, recompile with openssl or gnutls enabled.\n");
     return AVERROR_PROTOCOL_NOT_FOUND;
 }
 
@@ -271,6 +280,8 @@ static inline int retry_transfer_wrapper(URLContext *h, unsigned char *buf, int 
 
     len = 0;
     while (len < size_min) {
+        if (ff_check_interrupt(&h->interrupt_callback))
+            return AVERROR_EXIT;
         ret = transfer_func(h, buf+len, size-len);
         if (ret == AVERROR(EINTR))
             continue;
@@ -290,12 +301,10 @@ static inline int retry_transfer_wrapper(URLContext *h, unsigned char *buf, int 
                 av_usleep(1000);
             }
         } else if (ret < 1)
-            return ret < 0 ? ret : len;
+            return (ret < 0 && ret != AVERROR_EOF) ? ret : len;
         if (ret)
            fast_retries = FFMAX(fast_retries, 2);
         len += ret;
-        if (len < size && ff_check_interrupt(&h->interrupt_callback))
-            return AVERROR_EXIT;
     }
     return len;
 }

@@ -207,11 +207,11 @@ static av_cold int encode_init(AVCodecContext* avc_context)
     avcodec_get_chroma_sub_sample(avc_context->pix_fmt, &h->uv_hshift, &h->uv_vshift);
 
     if (avc_context->flags & CODEC_FLAG_QSCALE) {
-        /* to be constant with the libvorbis implementation, clip global_quality to 0 - 10
-           Theora accepts a quality parameter p, which is:
-                * 0 <= p <=63
-                * an int value
-         */
+        /* Clip global_quality in QP units to the [0 - 10] range
+           to be consistent with the libvorbis implementation.
+           Theora accepts a quality parameter which is an int value in
+           the [0 - 63] range.
+        */
         t_info.quality        = av_clipf(avc_context->global_quality / (float)FF_QP2LAMBDA, 0, 10) * 6.3;
         t_info.target_bitrate = 0;
     } else {
@@ -368,6 +368,7 @@ static av_cold int encode_close(AVCodecContext* avc_context)
 /** AVCodec struct exposed to libavcodec */
 AVCodec ff_libtheora_encoder = {
     .name           = "libtheora",
+    .long_name      = NULL_IF_CONFIG_SMALL("libtheora Theora"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_THEORA,
     .priv_data_size = sizeof(TheoraContext),
@@ -378,5 +379,4 @@ AVCodec ff_libtheora_encoder = {
     .pix_fmts       = (const enum AVPixelFormat[]){
         AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P, AV_PIX_FMT_NONE
     },
-    .long_name      = NULL_IF_CONFIG_SMALL("libtheora Theora"),
 };

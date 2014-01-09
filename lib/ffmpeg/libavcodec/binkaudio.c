@@ -36,9 +36,8 @@
 #include "rdft.h"
 #include "fmtconvert.h"
 #include "internal.h"
+#include "wma.h"
 #include "libavutil/intfloat.h"
-
-extern const uint16_t ff_wma_critical_freqs[25];
 
 static float quant_table[96];
 
@@ -318,10 +317,8 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     frame->nb_samples = s->frame_len;
-    if ((ret = ff_get_buffer(avctx, frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+    if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
         return ret;
-    }
 
     if (decode_block(s, (float **)frame->extended_data,
                      avctx->codec->id == AV_CODEC_ID_BINKAUDIO_DCT)) {
@@ -338,6 +335,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
 AVCodec ff_binkaudio_rdft_decoder = {
     .name           = "binkaudio_rdft",
+    .long_name      = NULL_IF_CONFIG_SMALL("Bink Audio (RDFT)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_BINKAUDIO_RDFT,
     .priv_data_size = sizeof(BinkAudioContext),
@@ -345,11 +343,11 @@ AVCodec ff_binkaudio_rdft_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DELAY | CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Bink Audio (RDFT)")
 };
 
 AVCodec ff_binkaudio_dct_decoder = {
     .name           = "binkaudio_dct",
+    .long_name      = NULL_IF_CONFIG_SMALL("Bink Audio (DCT)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_BINKAUDIO_DCT,
     .priv_data_size = sizeof(BinkAudioContext),
@@ -357,5 +355,4 @@ AVCodec ff_binkaudio_dct_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DELAY | CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Bink Audio (DCT)")
 };

@@ -1,20 +1,20 @@
 /*
  * Copyright (c) 2011  Justin Ruggles
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -58,7 +58,7 @@ int avpriv_adx_decode_header(AVCodecContext *avctx, const uint8_t *buf,
 
     /* check for encoding=3 block_size=18, sample_size=4 */
     if (buf[4] != 3 || buf[5] != 18 || buf[6] != 4) {
-        av_log_ask_for_sample(avctx, "unsupported ADX format\n");
+        avpriv_request_sample(avctx, "Support for this ADX format");
         return AVERROR_PATCHWELCOME;
     }
 

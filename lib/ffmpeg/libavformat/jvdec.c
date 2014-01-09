@@ -33,10 +33,10 @@
 #define JV_PREAMBLE_SIZE 5
 
 typedef struct {
-    int audio_size;    /** audio packet size (bytes) */
-    int video_size;    /** video packet size (bytes) */
-    int palette_size;  /** palette size (bytes) */
-    int video_type;    /** per-frame video compression type */
+    int audio_size;    /**< audio packet size (bytes) */
+    int video_size;    /**< video packet size (bytes) */
+    int palette_size;  /**< palette size (bytes) */
+    int video_type;    /**< per-frame video compression type */
 } JVFrame;
 
 typedef struct {
@@ -209,7 +209,7 @@ static int read_seek(AVFormatContext *s, int stream_index,
     }
 
     if (i < 0 || i >= ast->nb_index_entries)
-        return -1;
+        return 0;
     if (avio_seek(s->pb, ast->index_entries[i].pos, SEEK_SET) < 0)
         return -1;
 

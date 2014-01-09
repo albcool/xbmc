@@ -20,6 +20,7 @@
  */
 
 #include "config.h"
+#include "libavutil/attributes.h"
 #include "libavutil/intreadwrite.h"
 #include "dcadsp.h"
 
@@ -73,7 +74,7 @@ static void dca_qmf_32_subbands(float samples_in[32][8], int sb_act,
     }
 }
 
-void ff_dcadsp_init(DCADSPContext *s)
+av_cold void ff_dcadsp_init(DCADSPContext *s)
 {
     s->lfe_fir = dca_lfe_fir_c;
     s->qmf_32_subbands = dca_qmf_32_subbands;

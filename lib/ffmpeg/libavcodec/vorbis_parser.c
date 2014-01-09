@@ -1,20 +1,20 @@
 /*
  * Copyright (c) 2012 Justin Ruggles
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -141,8 +141,9 @@ static int parse_setup_header(AVCodecContext *avctx, VorbisParseContext *s,
      * we may need to approach this the long way and parse the whole Setup
      * header, but I hope very much that it never comes to that. */
     if (last_mode_count > 2) {
-        av_log_ask_for_sample(avctx, "%d modes found. This is either a false "
-                              "positive or a sample from an unknown encoder.\n",
+        avpriv_request_sample(avctx,
+                              "%d modes (either a false positive or a "
+                              "sample from an unknown encoder)",
                               last_mode_count);
     }
     /* We're limiting the mode count to 63 so that we know that the previous

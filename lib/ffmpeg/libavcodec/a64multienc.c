@@ -24,7 +24,6 @@
  * a64 video encoder - multicolor modes
  */
 
-#include "a64enc.h"
 #include "a64colors.h"
 #include "a64tables.h"
 #include "elbg.h"
@@ -36,6 +35,31 @@
 #define CHARSET_CHARS 256
 #define INTERLACED    1
 #define CROP_SCREENS  1
+
+#define C64XRES 320
+#define C64YRES 200
+
+typedef struct A64Context {
+    /* general variables */
+    AVFrame picture;
+
+    /* variables for multicolor modes */
+    AVLFG randctx;
+    int mc_lifetime;
+    int mc_use_5col;
+    unsigned mc_frame_counter;
+    int *mc_meta_charset;
+    int *mc_charmap;
+    int *mc_best_cb;
+    int mc_luma_vals[5];
+    uint8_t *mc_charset;
+    uint8_t *mc_colram;
+    uint8_t *mc_palette;
+    int mc_pal_size;
+
+    /* pts of the next packet that will be output */
+    int64_t next_pts;
+} A64Context;
 
 /* gray gradient */
 static const int mc_colors[5]={0x0,0xb,0xc,0xf,0x1};
@@ -372,6 +396,7 @@ static int a64multi_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 #if CONFIG_A64MULTI_ENCODER
 AVCodec ff_a64multi_encoder = {
     .name           = "a64multi",
+    .long_name      = NULL_IF_CONFIG_SMALL("Multicolor charset for Commodore 64"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_A64_MULTI,
     .priv_data_size = sizeof(A64Context),
@@ -379,13 +404,13 @@ AVCodec ff_a64multi_encoder = {
     .encode2        = a64multi_encode_frame,
     .close          = a64multi_close_encoder,
     .pix_fmts       = (const enum AVPixelFormat[]) {AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE},
-    .long_name      = NULL_IF_CONFIG_SMALL("Multicolor charset for Commodore 64"),
     .capabilities   = CODEC_CAP_DELAY,
 };
 #endif
 #if CONFIG_A64MULTI5_ENCODER
 AVCodec ff_a64multi5_encoder = {
     .name           = "a64multi5",
+    .long_name      = NULL_IF_CONFIG_SMALL("Multicolor charset for Commodore 64, extended with 5th color (colram)"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_A64_MULTI5,
     .priv_data_size = sizeof(A64Context),
@@ -393,7 +418,6 @@ AVCodec ff_a64multi5_encoder = {
     .encode2        = a64multi_encode_frame,
     .close          = a64multi_close_encoder,
     .pix_fmts       = (const enum AVPixelFormat[]) {AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE},
-    .long_name      = NULL_IF_CONFIG_SMALL("Multicolor charset for Commodore 64, extended with 5th color (colram)"),
     .capabilities   = CODEC_CAP_DELAY,
 };
 #endif

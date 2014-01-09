@@ -40,9 +40,6 @@ static av_cold int ra144_encode_close(AVCodecContext *avctx)
     RA144Context *ractx = avctx->priv_data;
     ff_lpc_end(&ractx->lpc_ctx);
     ff_af_queue_close(&ractx->afq);
-#if FF_API_OLD_ENCODE_AUDIO
-    av_freep(&avctx->coded_frame);
-#endif
     return 0;
 }
 
@@ -70,14 +67,6 @@ static av_cold int ra144_encode_init(AVCodecContext * avctx)
         goto error;
 
     ff_af_queue_init(avctx, &ractx->afq);
-
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame) {
-        ret = AVERROR(ENOMEM);
-        goto error;
-    }
-#endif
 
     return 0;
 error:
@@ -458,7 +447,7 @@ static int ra144_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     if (ractx->last_frame)
         return 0;
 
-    if ((ret = ff_alloc_packet2(avctx, avpkt, FRAMESIZE)) < 0)
+    if ((ret = ff_alloc_packet2(avctx, avpkt, FRAME_SIZE)) < 0)
         return ret;
 
     /**
@@ -547,7 +536,7 @@ static int ra144_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     ff_af_queue_remove(&ractx->afq, avctx->frame_size, &avpkt->pts,
                        &avpkt->duration);
 
-    avpkt->size = FRAMESIZE;
+    avpkt->size = FRAME_SIZE;
     *got_packet_ptr = 1;
     return 0;
 }
@@ -555,6 +544,7 @@ static int ra144_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_ra_144_encoder = {
     .name           = "real_144",
+    .long_name      = NULL_IF_CONFIG_SMALL("RealAudio 1.0 (14.4K)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_RA_144,
     .priv_data_size = sizeof(RA144Context),
@@ -565,5 +555,5 @@ AVCodec ff_ra_144_encoder = {
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
     .supported_samplerates = (const int[]){ 8000, 0 },
-    .long_name      = NULL_IF_CONFIG_SMALL("RealAudio 1.0 (14.4K)"),
+    .channel_layouts = (const uint64_t[]) { AV_CH_LAYOUT_MONO, 0 },
 };

@@ -29,6 +29,7 @@
 
 #include <stddef.h>
 
+#include "libavutil/avassert.h"
 #include "libavutil/channel_layout.h"
 #include "libavutil/float_dsp.h"
 #include "avcodec.h"
@@ -39,9 +40,6 @@
 #include "acelp_filters.h"
 #include "acelp_vectors.h"
 #include "lsp.h"
-
-#undef NDEBUG
-#include <assert.h>
 
 typedef enum {
     I_F_Q = -1,    /**< insufficient frame quality */
@@ -94,7 +92,7 @@ static av_cold int qcelp_decode_init(AVCodecContext *avctx)
     avctx->sample_fmt     = AV_SAMPLE_FMT_FLT;
 
     for (i = 0; i < 10; i++)
-        q->prev_lspf[i] = (i + 1) / 11.;
+        q->prev_lspf[i] = (i + 1) / 11.0;
 
     return 0;
 }
@@ -135,7 +133,7 @@ static int decode_lspf(QCELPContext *q, float *lspf)
         } else {
             erasure_coeff = QCELP_LSP_OCTAVE_PREDICTOR;
 
-            assert(q->bitrate == I_F_Q);
+            av_assert2(q->bitrate == I_F_Q);
 
             if (q->erasure_count > 1)
                 erasure_coeff *= q->erasure_count < 4 ? 0.9 : 0.7;
@@ -162,7 +160,7 @@ static int decode_lspf(QCELPContext *q, float *lspf)
     } else {
         q->octave_count = 0;
 
-        tmp_lspf = 0.;
+        tmp_lspf = 0.0;
         for (i = 0; i < 5; i++) {
             lspf[2 * i + 0] = tmp_lspf += qcelp_lspvq[i][q->frame.lspv[i]][0] * 0.0001;
             lspf[2 * i + 1] = tmp_lspf += qcelp_lspvq[i][q->frame.lspv[i]][1] * 0.0001;
@@ -239,7 +237,7 @@ static void decode_gain_and_index(QCELPContext *q, float *gain)
                     av_clip((q->prev_g1[0] + q->prev_g1[1]) / 2 - 5, 0, 54);
             subframes_count = 8;
         } else {
-            assert(q->bitrate == I_F_Q);
+            av_assert2(q->bitrate == I_F_Q);
 
             g1[0] = q->prev_g1[1];
             switch (q->erasure_count) {
@@ -434,7 +432,7 @@ static const float *do_pitchfilter(float memory[303], const float v_in[160],
             v_lag = memory + 143 + 40 * i - lag[i];
             for (v_len = v_in + 40; v_in < v_len; v_in++) {
                 if (pfrac[i]) { // If it is a fractional lag...
-                    for (j = 0, *v_out = 0.; j < 4; j++)
+                    for (j = 0, *v_out = 0.0; j < 4; j++)
                         *v_out += qcelp_hammsinc_table[j] * (v_lag[j - 4] + v_lag[3 - j]);
                 } else
                     *v_out = *v_lag;
@@ -486,7 +484,7 @@ static void apply_pitch_filters(QCELPContext *q, float *cdn_vector)
                   else
                       max_pitch_gain = 0.0;
             } else {
-                assert(q->bitrate == SILENCE);
+                av_assert2(q->bitrate == SILENCE);
                 max_pitch_gain = 1.0;
             }
             for (i = 0; i < 4; i++)
@@ -635,8 +633,8 @@ static qcelp_packet_rate determine_bitrate(AVCodecContext *avctx,
         return I_F_Q;
 
     if (bitrate == SILENCE) {
-        //FIXME: Remove experimental warning when tested with samples.
-        av_log_ask_for_sample(avctx, "'Blank frame handling is experimental.");
+        // FIXME: Remove this warning when tested with samples.
+        avpriv_request_sample(avctx, "Blank frame handling");
     }
     return bitrate;
 }
@@ -695,10 +693,8 @@ static int qcelp_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     frame->nb_samples = 160;
-    if ((ret = ff_get_buffer(avctx, frame)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+    if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
         return ret;
-    }
     outbuffer = (float *)frame->data[0];
 
     if ((q->bitrate = determine_bitrate(avctx, buf_size, &buf)) == I_F_Q) {
@@ -789,11 +785,11 @@ erasure:
 
 AVCodec ff_qcelp_decoder = {
     .name           = "qcelp",
+    .long_name      = NULL_IF_CONFIG_SMALL("QCELP / PureVoice"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_QCELP,
     .init           = qcelp_decode_init,
     .decode         = qcelp_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
     .priv_data_size = sizeof(QCELPContext),
-    .long_name      = NULL_IF_CONFIG_SMALL("QCELP / PureVoice"),
 };

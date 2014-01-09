@@ -28,11 +28,12 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "get_bits.h"
+#include "internal.h"
 #include "libavutil/intreadwrite.h"
 
 typedef struct JvContext {
     DSPContext dsp;
-    AVFrame    frame;
+    AVFrame   *frame;
     uint32_t   palette[AVPALETTE_COUNT];
     int        palette_has_changed;
 } JvContext;
@@ -42,6 +43,9 @@ static av_cold int decode_init(AVCodecContext *avctx)
     JvContext *s = avctx->priv_data;
     avctx->pix_fmt = AV_PIX_FMT_PAL8;
     ff_dsputil_init(&s->dsp, avctx);
+    s->frame = av_frame_alloc();
+    if (!s->frame)
+        return AVERROR(ENOMEM);
     return 0;
 }
 
@@ -135,7 +139,7 @@ static int decode_frame(AVCodecContext *avctx,
     JvContext *s           = avctx->priv_data;
     const uint8_t *buf     = avpkt->data;
     const uint8_t *buf_end = buf + avpkt->size;
-    int video_size, video_type, ret, i, j;
+    int video_size, video_type, i, j, ret;
 
     if (avpkt->size < 6)
         return AVERROR_INVALIDDATA;
@@ -149,10 +153,8 @@ static int decode_frame(AVCodecContext *avctx,
             av_log(avctx, AV_LOG_ERROR, "video size %d invalid\n", video_size);
             return AVERROR_INVALIDDATA;
         }
-        if ((ret = avctx->reget_buffer(avctx, &s->frame)) < 0) {
-            av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+        if ((ret = ff_reget_buffer(avctx, s->frame)) < 0)
             return ret;
-        }
 
         if (video_type == 0 || video_type == 1) {
             GetBitContext gb;
@@ -160,14 +162,14 @@ static int decode_frame(AVCodecContext *avctx,
 
             for (j = 0; j < avctx->height; j += 8)
                 for (i = 0; i < avctx->width; i += 8)
-                    decode8x8(&gb, s->frame.data[0] + j*s->frame.linesize[0] + i,
-                              s->frame.linesize[0], &s->dsp);
+                    decode8x8(&gb, s->frame->data[0] + j * s->frame->linesize[0] + i,
+                              s->frame->linesize[0], &s->dsp);
 
             buf += video_size;
         } else if (video_type == 2) {
             int v = *buf++;
             for (j = 0; j < avctx->height; j++)
-                memset(s->frame.data[0] + j*s->frame.linesize[0], v, avctx->width);
+                memset(s->frame->data[0] + j * s->frame->linesize[0], v, avctx->width);
         } else {
             av_log(avctx, AV_LOG_WARNING, "unsupported frame type %i\n", video_type);
             return AVERROR_INVALIDDATA;
@@ -184,14 +186,15 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     if (video_size) {
-        s->frame.key_frame           = 1;
-        s->frame.pict_type           = AV_PICTURE_TYPE_I;
-        s->frame.palette_has_changed = s->palette_has_changed;
+        s->frame->key_frame           = 1;
+        s->frame->pict_type           = AV_PICTURE_TYPE_I;
+        s->frame->palette_has_changed = s->palette_has_changed;
         s->palette_has_changed       = 0;
-        memcpy(s->frame.data[1], s->palette, AVPALETTE_SIZE);
+        memcpy(s->frame->data[1], s->palette, AVPALETTE_SIZE);
 
+        if ((ret = av_frame_ref(data, s->frame)) < 0)
+            return ret;
         *got_frame = 1;
-        *(AVFrame*)data = s->frame;
     }
 
     return avpkt->size;
@@ -201,8 +204,7 @@ static av_cold int decode_close(AVCodecContext *avctx)
 {
     JvContext *s = avctx->priv_data;
 
-    if(s->frame.data[0])
-        avctx->release_buffer(avctx, &s->frame);
+    av_frame_free(&s->frame);
 
     return 0;
 }

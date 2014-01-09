@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/attributes.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "mpegvideo.h"
@@ -126,7 +127,7 @@ static inline int decide_ac_pred(MpegEncContext * s, int16_t block[6][64], const
 {
     int score= 0;
     int i, n;
-    int8_t * const qscale_table = s->current_picture.f.qscale_table;
+    int8_t * const qscale_table = s->current_picture.qscale_table;
 
     memcpy(zigzag_last_index, s->block_last_index, sizeof(int)*6);
 
@@ -203,7 +204,7 @@ static inline int decide_ac_pred(MpegEncContext * s, int16_t block[6][64], const
  */
 void ff_clean_mpeg4_qscales(MpegEncContext *s){
     int i;
-    int8_t * const qscale_table = s->current_picture.f.qscale_table;
+    int8_t * const qscale_table = s->current_picture.qscale_table;
 
     ff_clean_h263_qscales(s);
 
@@ -499,7 +500,7 @@ void ff_mpeg4_encode_mb(MpegEncContext * s,
             av_assert2(mb_type>=0);
 
             /* nothing to do if this MB was skipped in the next P Frame */
-            if (s->next_picture.f.mbskip_table[s->mb_y * s->mb_stride + s->mb_x]) { //FIXME avoid DCT & ...
+            if (s->next_picture.mbskip_table[s->mb_y * s->mb_stride + s->mb_x]) { //FIXME avoid DCT & ...
                 s->skip_count++;
                 s->mv[0][0][0]=
                 s->mv[0][0][1]=
@@ -641,7 +642,7 @@ void ff_mpeg4_encode_mb(MpegEncContext * s,
                             break;
 
                         b_pic = pic->f.data[0] + offset;
-                        if (pic->f.type != FF_BUFFER_TYPE_SHARED)
+                        if (!pic->shared)
                             b_pic+= INPLACE_OFFSET;
 
                         if(x+16 > s->width || y+16 > s->height){
@@ -759,8 +760,8 @@ void ff_mpeg4_encode_mb(MpegEncContext * s,
                     /* motion vectors: 8x8 mode*/
                     ff_h263_pred_motion(s, i, 0, &pred_x, &pred_y);
 
-                    ff_h263_encode_motion_vector(s, s->current_picture.f.motion_val[0][ s->block_index[i] ][0] - pred_x,
-                                                    s->current_picture.f.motion_val[0][ s->block_index[i] ][1] - pred_y, s->f_code);
+                    ff_h263_encode_motion_vector(s, s->current_picture.motion_val[0][ s->block_index[i] ][0] - pred_x,
+                                                    s->current_picture.motion_val[0][ s->block_index[i] ][1] - pred_y, s->f_code);
                 }
             }
 
@@ -1095,7 +1096,7 @@ void ff_mpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
 }
 
 
-static void init_uni_dc_tab(void)
+static av_cold void init_uni_dc_tab(void)
 {
     int level, uni_code, uni_len;
 
@@ -1147,7 +1148,9 @@ static void init_uni_dc_tab(void)
     }
 }
 
-static void init_uni_mpeg4_rl_tab(RLTable *rl, uint32_t *bits_tab, uint8_t *len_tab){
+static av_cold void init_uni_mpeg4_rl_tab(RLTable *rl, uint32_t *bits_tab,
+                                          uint8_t *len_tab)
+{
     int slevel, run, last;
 
     av_assert0(MAX_LEVEL >= 64);
@@ -1350,6 +1353,7 @@ static const AVClass mpeg4enc_class = {
 
 AVCodec ff_mpeg4_encoder = {
     .name           = "mpeg4",
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MPEG4,
     .priv_data_size = sizeof(MpegEncContext),
@@ -1358,6 +1362,5 @@ AVCodec ff_mpeg4_encoder = {
     .close          = ff_MPV_encode_end,
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE },
     .capabilities   = CODEC_CAP_DELAY | CODEC_CAP_SLICE_THREADS,
-    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
     .priv_class     = &mpeg4enc_class,
 };
