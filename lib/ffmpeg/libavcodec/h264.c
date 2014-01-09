@@ -5069,6 +5069,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
             if (ret < 0)
                 return ret;
             *got_frame = 1;
+            av_dict_set(&pict->metadata, "stereo_mode", ff_h264_sei_stereo_mode(h), 0);
         }
 
         return buf_index;
@@ -5127,6 +5128,7 @@ not_extra:
             if (ret < 0)
                 return ret;
             *got_frame = 1;
+            av_dict_set(&pict->metadata, "stereo_mode", ff_h264_sei_stereo_mode(h), 0);
             if (CONFIG_MPEGVIDEO) {
                 ff_print_debug_info2(h->avctx, h->next_output_pic, pict, h->er.mbskip_table,
                                     &h->low_delay,
