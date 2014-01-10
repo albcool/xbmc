@@ -4,13 +4,13 @@ Date: Thu, 9 Jan 2014 18:25:07 +0400
 Subject: [PATCH] Read-PID-timestamps-as-well-as-PCR-timestamps-to-fin
 
 ---
- lib/ffmpeg/libavformat/mpegts.c |   48 +++++++++++++++++++++++++++++++++++++--
+ libavformat/mpegts.c |   48 +++++++++++++++++++++++++++++++++++++--
  1 file changed, 46 insertions(+), 2 deletions(-)
 
-diff --git a/lib/ffmpeg/libavformat/mpegts.c b/lib/ffmpeg/libavformat/mpegts.c
+diff --git a/libavformat/mpegts.c b/libavformat/mpegts.c
 index a4571b9..c336116 100644
---- a/lib/ffmpeg/libavformat/mpegts.c
-+++ b/lib/ffmpeg/libavformat/mpegts.c
+--- a/libavformat/mpegts.c
++++ b/libavformat/mpegts.c
 @@ -2131,6 +2131,44 @@ static void seek_back(AVFormatContext *s, AVIOContext *pb, int64_t pos) {
          av_log(s, pb->seekable ? AV_LOG_ERROR : AV_LOG_INFO, "Unable to seek back to the start\n");
  }
