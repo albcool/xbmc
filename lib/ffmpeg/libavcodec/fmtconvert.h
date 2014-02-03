@@ -35,7 +35,8 @@ typedef struct FmtConvertContext {
      * @param len number of elements to convert.
      *            constraints: multiple of 8
      */
-    void (*int32_to_float_fmul_scalar)(float *dst, const int *src, float mul, int len);
+    void (*int32_to_float_fmul_scalar)(float *dst, const int32_t *src,
+                                       float mul, int len);
 
     /**
      * Convert an array of int32_t to float and multiply by a float value from another array,
@@ -106,7 +107,7 @@ void ff_float_interleave_c(float *dst, const float **src, unsigned int len,
 void ff_fmt_convert_init(FmtConvertContext *c, AVCodecContext *avctx);
 
 void ff_fmt_convert_init_arm(FmtConvertContext *c, AVCodecContext *avctx);
-void ff_fmt_convert_init_altivec(FmtConvertContext *c, AVCodecContext *avctx);
+void ff_fmt_convert_init_ppc(FmtConvertContext *c, AVCodecContext *avctx);
 void ff_fmt_convert_init_x86(FmtConvertContext *c, AVCodecContext *avctx);
 void ff_fmt_convert_init_mips(FmtConvertContext *c);
 

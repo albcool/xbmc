@@ -41,7 +41,6 @@
 
 typedef struct OggVorbisEncContext {
     AVClass *av_class;                  /**< class for AVOptions            */
-    AVFrame frame;
     vorbis_info vi;                     /**< vorbis_info used during init   */
     vorbis_dsp_state vd;                /**< DSP state used for analysis    */
     vorbis_block vb;                    /**< vorbis_block used for analysis */
@@ -64,7 +63,7 @@ static const AVCodecDefault defaults[] = {
     { NULL },
 };
 
-static const AVClass class = {
+static const AVClass vorbis_class = {
     .class_name = "libvorbis",
     .item_name  = av_default_item_name,
     .option     = options,
@@ -187,9 +186,6 @@ static av_cold int oggvorbis_encode_close(AVCodecContext *avctx)
 
     av_fifo_free(s->pkt_fifo);
     ff_af_queue_close(&s->afq);
-#if FF_API_OLD_ENCODE_AUDIO
-    av_freep(&avctx->coded_frame);
-#endif
     av_freep(&avctx->extradata);
 
     return 0;
@@ -266,14 +262,6 @@ static av_cold int oggvorbis_encode_init(AVCodecContext *avctx)
         ret = AVERROR(ENOMEM);
         goto error;
     }
-
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame) {
-        ret = AVERROR(ENOMEM);
-        goto error;
-    }
-#endif
 
     return 0;
 error:
@@ -374,6 +362,7 @@ static int oggvorbis_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_libvorbis_encoder = {
     .name           = "libvorbis",
+    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_VORBIS,
     .priv_data_size = sizeof(OggVorbisEncContext),
@@ -383,7 +372,6 @@ AVCodec ff_libvorbis_encoder = {
     .capabilities   = CODEC_CAP_DELAY,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis"),
-    .priv_class     = &class,
+    .priv_class     = &vorbis_class,
     .defaults       = defaults,
 };

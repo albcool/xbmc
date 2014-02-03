@@ -116,12 +116,10 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
             st->codec->codec_id = AV_CODEC_ID_MJPEG;
             break;
         case 13:
-        case 15:
-            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-            st->codec->codec_id = AV_CODEC_ID_DVVIDEO;
-            break;
         case 14:
+        case 15:
         case 16:
+        case 25:
             st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = AV_CODEC_ID_DVVIDEO;
             break;
@@ -165,12 +163,22 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
             st->codec->channel_layout = AV_CH_LAYOUT_STEREO;
             st->codec->sample_rate = 48000;
             break;
+        case 26: /* AVCi50 / AVCi100 (AVC Intra) */
+        case 29: /* AVCHD */
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+            st->codec->codec_id = AV_CODEC_ID_H264;
+            st->need_parsing = AVSTREAM_PARSE_HEADERS;
+            break;
         // timecode tracks:
         case 7:
         case 8:
         case 24:
             st->codec->codec_type = AVMEDIA_TYPE_DATA;
             st->codec->codec_id = AV_CODEC_ID_NONE;
+            break;
+        case 30:
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+            st->codec->codec_id = AV_CODEC_ID_DNXHD;
             break;
         default:
             st->codec->codec_type = AVMEDIA_TYPE_UNKNOWN;
@@ -559,7 +567,7 @@ static int gxf_seek(AVFormatContext *s, int stream_index, int64_t timestamp, int
     idx = av_index_search_timestamp(st, timestamp - start_time,
                                     AVSEEK_FLAG_ANY | AVSEEK_FLAG_BACKWARD);
     if (idx < 0)
-        return AVERROR(ENOSYS);
+        return -1;
     pos = st->index_entries[idx].pos;
     if (idx < st->nb_index_entries - 2)
         maxlen = st->index_entries[idx + 2].pos - pos;
@@ -569,7 +577,7 @@ static int gxf_seek(AVFormatContext *s, int stream_index, int64_t timestamp, int
         return res;
     found = gxf_resync_media(s, maxlen, -1, timestamp);
     if (FFABS(found - timestamp) > 4)
-        return AVERROR(ENOSYS);
+        return -1;
     return 0;
 }
 

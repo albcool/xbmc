@@ -19,8 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#define DEBUG
-
 #include "libavutil/intreadwrite.h"
 #include "libavutil/dict.h"
 #include "libavutil/mathematics.h"
@@ -87,7 +85,7 @@ static int r3d_read_red1(AVFormatContext *s)
 
     framerate.num = avio_rb16(s->pb);
     framerate.den = avio_rb16(s->pb);
-    if (framerate.num && framerate.den) {
+    if (framerate.num > 0 && framerate.den > 0) {
 #if FF_API_R_FRAME_RATE
         st->r_frame_rate =
 #endif
@@ -285,8 +283,8 @@ static int r3d_read_reda(AVFormatContext *s, AVPacket *pkt, Atom *atom)
     dts = avio_rb32(s->pb);
 
     st->codec->sample_rate = avio_rb32(s->pb);
-    if (st->codec->sample_rate < 0) {
-        av_log(s, AV_LOG_ERROR, "negative sample rate\n");
+    if (st->codec->sample_rate <= 0) {
+        av_log(s, AV_LOG_ERROR, "Bad sample rate\n");
         return AVERROR_INVALIDDATA;
     }
 
@@ -371,7 +369,7 @@ static int r3d_seek(AVFormatContext *s, int stream_index, int64_t sample_time, i
     int frame_num;
 
     if (!st->avg_frame_rate.num)
-        return AVERROR(ENOSYS);
+        return -1;
 
     frame_num = av_rescale_q(sample_time, st->time_base,
                              av_inv_q(st->avg_frame_rate));
