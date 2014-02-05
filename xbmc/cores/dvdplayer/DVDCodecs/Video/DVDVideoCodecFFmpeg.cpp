@@ -460,7 +460,12 @@ int CDVDVideoCodecFFmpeg::Decode(uint8_t* pData, int iSize, double dts, double p
       result = m_pHardware->Decode(m_pCodecContext, NULL);
 
     if(result)
+    {
+      if (result & VC_ERROR)
+        m_dllAvCodec.avcodec_flush_buffers(m_pCodecContext);
+
       return result;
+    }
   }
 
   if(m_pFilterGraph)
@@ -490,6 +495,7 @@ int CDVDVideoCodecFFmpeg::Decode(uint8_t* pData, int iSize, double dts, double p
   if (len < 0)
   {
     CLog::Log(LOGERROR, "%s - avcodec_decode_video returned failure", __FUNCTION__);
+    m_dllAvCodec.avcodec_flush_buffers(m_pCodecContext);
     return VC_ERROR;
   }
 
@@ -541,7 +547,11 @@ int CDVDVideoCodecFFmpeg::Decode(uint8_t* pData, int iSize, double dts, double p
 
   int result;
   if(m_pHardware)
+  {
     result = m_pHardware->Decode(m_pCodecContext, m_pFrame);
+    if (result & VC_ERROR)
+      m_dllAvCodec.avcodec_flush_buffers(m_pCodecContext);
+  }
   else if(m_pFilterGraph)
     result = FilterProcess(m_pFrame);
   else
