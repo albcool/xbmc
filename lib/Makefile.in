@@ -12,10 +12,10 @@ else
 AVPREFIX=
 endif
 
-AVFORMAT_SO=$(AVPREFIX)avformat-54-$(ARCH).so
-AVCODEC_SO=$(AVPREFIX)avcodec-54-$(ARCH).so
+AVFORMAT_SO=$(AVPREFIX)avformat-55-$(ARCH).so
+AVCODEC_SO=$(AVPREFIX)avcodec-55-$(ARCH).so
 AVUTIL_SO=$(AVPREFIX)avutil-52-$(ARCH).so
-AVFILTER_SO=$(AVPREFIX)avfilter-3-$(ARCH).so
+AVFILTER_SO=$(AVPREFIX)avfilter-4-$(ARCH).so
 SWSCALE_SO=$(AVPREFIX)swscale-2-$(ARCH).so
 POSTPROC_SO=$(AVPREFIX)postproc-52-$(ARCH).so
 SWRESAMPLE_SO=$(AVPREFIX)swresample-0-$(ARCH).so
